@@ -17,6 +17,12 @@ class ViewController: UIViewController {
         checkState()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        if !sfAuthSessionSwitch.isOn {
+            checkState()
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -38,7 +44,7 @@ class ViewController: UIViewController {
     @IBAction func buttonClick(_ sender: Any) {
         let appDelegate = UIApplication.shared.delegate as! AppDelegate
         if appDelegate.tokens == nil {
-            appDelegate.authServer.authorize(useSfAuthSession: sfAuthSessionSwitch.isOn, handler: { (success) in
+            appDelegate.authServer.authorize(viewController: self, useSfAuthSession: sfAuthSessionSwitch.isOn, handler: { (success) in
                 if !success {
                     //TODO: show error
                     self.updateUI()

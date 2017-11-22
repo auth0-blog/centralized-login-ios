@@ -65,8 +65,9 @@ class AuthorizationServer {
     var receivedState: String? = nil
     
     private var sfAuthSession: SFAuthenticationSession? = nil
+    private var sfSafariViewController: SFSafariViewController? = nil
     
-    func authorize(useSfAuthSession: Bool, handler: @escaping (Bool) -> Void) {
+    func authorize(viewController: UIViewController, useSfAuthSession: Bool, handler: @escaping (Bool) -> Void) {
         guard let challenge = generateCodeChallenge() else {
             // TODO: handle error
             handler(false)
@@ -89,24 +90,28 @@ class AuthorizationServer {
         
         if useSfAuthSession {
             sfAuthSession = SFAuthenticationSession(url: urlComp.url!, callbackURLScheme: "auth0test1", completionHandler: { (url, error) in
-                if error != nil {
-                    handler(false)
+                guard error == nil else {
+                    return handler(false)
                 }
                 
                 handler(url != nil && self.parseAuthorizeRedirectUrl(url: url!))
             })
             sfAuthSession?.start()
         } else {
-            UIApplication.shared.open(urlComp.url!, options: [:], completionHandler: handler)
+            sfSafariViewController = SFSafariViewController(url: urlComp.url!)
+            viewController.present(sfSafariViewController!, animated: true)
+            handler(true)
         }
     }
     
     func parseAuthorizeRedirectUrl(url: URL) -> Bool {
         guard let urlComp = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            sfSafariViewController?.dismiss(animated: true, completion: nil)
             return false
         }
         
         if urlComp.queryItems == nil {
+            sfSafariViewController?.dismiss(animated: true, completion: nil)
             return false
         }
         
@@ -117,6 +122,8 @@ class AuthorizationServer {
                 receivedState = item.value
             }
         }
+        
+        sfSafariViewController?.dismiss(animated: true, completion: nil)
         
         return receivedCode != nil && receivedState != nil
     }
